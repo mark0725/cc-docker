@@ -1,4 +1,4 @@
-IMAGE="registry.server.gingkoo/ai/claude-code:latest"
+IMAGE="ghcr.io/mark0725/cc-docker:latest"
 EXTRA_ARGS=""
 
 PROJECT_ID=`pwd|sed  's/\//_/g'`
@@ -7,11 +7,11 @@ PROJECT_ID=`pwd|sed  's/\//_/g'`
 while [ $# -gt 0 ]; do
     case "$1" in
         --java8)
-            IMAGE="registry.server.gingkoo/ai/claude-code:java8"
+            IMAGE="ghcr.io/mark0725/cc-docker:java8"
             shift
             ;;
         --java)
-            IMAGE="registry.server.gingkoo/ai/claude-code:java17"
+            IMAGE="ghcr.io/mark0725/cc-docker:java17"
             shift
             ;;
         *)
