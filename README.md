@@ -79,7 +79,7 @@ docker run -it --rm --network=host \
   -v "${HOME}/.claude:/home/node/.claude" \
   -v "${HOME}/.agents:/home/node/.agents" \
   -v "$(pwd):/workspace/$(pwd|sed 's/\//_/g')" \
-  ghcr.io/mark0725/cc-docker:latest
+  ghcr.io/mark0725/agent-cc-docker:latest
 ```
 
 ## 目录权限映射
@@ -100,9 +100,9 @@ GitHub Actions 自动构建并推送镜像到 GHCR：
 ## 镜像地址
 
 ```
-ghcr.io/mark0725/cc-docker:latest
-ghcr.io/mark0725/cc-docker:java8
-ghcr.io/mark0725/cc-docker:java17
+ghcr.io/mark0725/agent-cc-docker:latest
+ghcr.io/mark0725/agent-cc-docker:java8
+ghcr.io/mark0725/agent-cc-docker:java17
 ```
 
 ## License
