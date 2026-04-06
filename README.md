@@ -1,4 +1,4 @@
-# cc-docker
+# agent-cc-docker
 
 Claude Code 的 Docker 镜像，支持多架构（amd64/arm64），开箱即用的开发环境。
 
@@ -23,14 +23,14 @@ Python 3 + pip + venv
 ### 1. 安装 `cc` 脚本
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mark0725/cc-docker/main/agent-cc -o ~/.local/bin/agent-cc
+curl -fsSL https://raw.githubusercontent.com/mark0725/agent-cc-docker/main/agent-cc -o ~/.local/bin/agent-cc
 chmod +x ~/.local/bin/agent-cc
 ```
 
 或直接使用 `agent-cc`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mark0725/cc-docker/main/agent-cc -o ~/.local/bin/agent-cc
+curl -fsSL https://raw.githubusercontent.com/mark0725/agent-cc-docker/main/agent-cc -o ~/.local/bin/agent-cc
 chmod +x ~/.local/bin/agent-cc
 ```
 
