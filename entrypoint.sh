@@ -36,27 +36,27 @@ if [ -n "${AGENT_ID:-}" ]; then
     {
         # SOUL.md
         if [ -f "${AGENT_DIR}/SOUL.md" ]; then
-            echo "<SOUL.md>"
+            echo "<SOUL>"
             cat "${AGENT_DIR}/SOUL.md"
-            echo "</SOUL.md>"
+            echo "</SOUL>"
             echo ""
             echo ""
         fi
 
         # AGENTS.md
         if [ -f "${AGENT_DIR}/AGENTS.md" ]; then
-            echo "<AGENTS.md>"
+            echo "<AGENTS>"
             cat "${AGENT_DIR}/AGENTS.md"
-            echo "</AGENTS.md>"
+            echo "</AGENTS>"
             echo ""
             echo ""
         fi
 
         # MEMORY.md
         if [ -f "${AGENT_DIR}/MEMORY.md" ]; then
-            echo "<MEMORY.md>"
+            echo "<MEMORY>"
             cat "${AGENT_DIR}/MEMORY.md"
-            echo "</MEMORY.md>"
+            echo "</MEMORY>"
         fi
     } > "${CLAUDE_MD}"
 fi
