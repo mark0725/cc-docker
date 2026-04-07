@@ -60,6 +60,11 @@ RUN npm install -g @anthropic-ai/claude-code
 # ===== 安装 Codex =====
 RUN npm i -g @openai/codex
 
+# ===== UID 映射: gosu + entrypoint =====
+RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
+    curl -fsSL "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
+    chmod +x /usr/local/bin/gosu
+
 # Unset http proxy
 RUN if [ -n "$HTTP_PROXY" ]; then \
         unset http_proxy; \
@@ -67,10 +72,6 @@ RUN if [ -n "$HTTP_PROXY" ]; then \
         unset proxy_url; \
     fi
 
-# ===== UID 映射: gosu + entrypoint =====
-RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
-    curl -fsSL "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
-    chmod +x /usr/local/bin/gosu
 COPY entrypoint.sh /entrypoint.sh
 
 # 以 root 创建 node 用户的配置文件，运行时 entrypoint 会修正属主

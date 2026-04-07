@@ -2,6 +2,16 @@ ARG BASE_IMAGE_REGISTRY=ghcr.io/mark0725/agent-go-docker
 
 FROM ${BASE_IMAGE_REGISTRY}:latest
 
+ARG HTTP_PROXY=
+
+# Set http proxy
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        echo "Configuring proxy..."; \
+        export http_proxy=$HTTP_PROXY; \
+        export https_proxy=$HTTP_PROXY; \
+        export proxy_url=$HTTP_PROXY; \
+    fi
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ===== Java 8 (Eclipse Temurin) =====
@@ -24,3 +34,10 @@ RUN curl -fsSL https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/
 ENV MAVEN_HOME="/usr/local/maven"
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 ENV M2_HOME="/home/node/.m2"
+
+# Unset http proxy
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        unset http_proxy; \
+        unset https_proxy; \
+        unset proxy_url; \
+    fi

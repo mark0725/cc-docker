@@ -2,11 +2,28 @@ ARG BASE_IMAGE_REGISTRY=ghcr.io/mark0725/agent-go-docker
 
 FROM ${BASE_IMAGE_REGISTRY}:latest
 
+ARG HTTP_PROXY=
+
+# Set http proxy
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        echo "Configuring proxy..."; \
+        export http_proxy=$HTTP_PROXY; \
+        export https_proxy=$HTTP_PROXY; \
+        export proxy_url=$HTTP_PROXY; \
+    fi
 ENV DEBIAN_FRONTEND=noninteractive
 
 USER node
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/node/.cargo/bin:${PATH}"
+
+# Unset http proxy
+RUN if [ -n "$HTTP_PROXY" ]; then \
+        unset http_proxy; \
+        unset https_proxy; \
+        unset proxy_url; \
+    fi
+
 
 USER root
