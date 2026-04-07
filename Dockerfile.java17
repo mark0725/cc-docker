@@ -1,6 +1,6 @@
-# Dockerfile.java17
-# 基于已构建的基础镜像，添加 Java 17 (Eclipse Temurin) 支持
-FROM ghcr.io/mark0725/agent-go-docker:latest
+ARG BASE_IMAGE_REGISTRY=ghcr.io/mark0725/agent-go-docker
+
+FROM ${BASE_IMAGE_REGISTRY}:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
 

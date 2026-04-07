@@ -1,6 +1,6 @@
-FROM ghcr.io/mark0725/agent-go-docker:latest
+ARG BASE_IMAGE_REGISTRY=ghcr.io/mark0725/agent-go-docker
 
-ENV DEBIAN_FRONTEND=noninteractive
+FROM ${BASE_IMAGE_REGISTRY}:latest
 
 ENV GOPROXY=https://proxy.golang.com.cn,direct
 ARG GO_VERSION=1.26.1
