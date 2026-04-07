@@ -49,6 +49,8 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # ===== Go (可选) =====
 ENV GOPROXY=https://proxy.golang.com.cn,direct
 ARG GO_VERSION=1.26.1
