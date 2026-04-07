@@ -51,18 +51,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# ===== Go (可选) =====
-ENV GOPROXY=https://proxy.golang.com.cn,direct
-ARG GO_VERSION=1.26.1
-RUN GOARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
-    curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz \
-    | tar -C /usr/local -xzf -
-ENV PATH="/usr/local/go/bin:${PATH}"
-
-# ===== Rust (可选) =====
-# RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-# ENV PATH="/root/.cargo/bin:${PATH}"
-
 # ===== Docker CLI (可选，用于 DinD 场景) =====
 # RUN curl -fsSL https://get.docker.com | sh
 
@@ -87,8 +75,6 @@ COPY entrypoint.sh /entrypoint.sh
 
 # 以 root 创建 node 用户的配置文件，运行时 entrypoint 会修正属主
 WORKDIR /home/node
-ENV GOPATH="/home/node/go"
-ENV PATH="${GOPATH}/bin:/usr/local/go/bin:${PATH}"
 RUN git config --global init.defaultBranch main \
     && chown -R node:node /home/node
 

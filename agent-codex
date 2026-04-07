@@ -17,6 +17,18 @@ while [ $# -gt 0 ]; do
             IMAGE="ghcr.io/mark0725/agent-go-docker:java17"
             shift
             ;;
+        --java17)
+            IMAGE="ghcr.io/mark0725/agent-go-docker:java17"
+            shift
+            ;;
+        --go)
+            IMAGE="ghcr.io/mark0725/agent-go-docker:go"
+            shift
+            ;;
+        --rust)
+            IMAGE="ghcr.io/mark0725/agent-go-docker:rust"
+            shift
+            ;;
         *)
             EXTRA_ARGS="$EXTRA_ARGS $1"
             shift
