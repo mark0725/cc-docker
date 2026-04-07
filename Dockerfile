@@ -62,7 +62,7 @@ RUN npm i -g @openai/codex
 
 # ===== UID 映射: gosu + entrypoint =====
 RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
-    curl -fsSL "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
+    curl -fsSL --http1.1 "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
     chmod +x /usr/local/bin/gosu
 
 # Unset http proxy
