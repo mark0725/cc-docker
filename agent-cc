@@ -10,12 +10,12 @@ AGENT_ID="${AGENT_ID:-default}"
 
 PROJECT_HOME="${PROJECT_HOME:-`pwd`}"
 CLAUDE_HOME="${CLAUDE_HOME:-${HOME}/.claude}"
-AGENT_HOME="${AGENT_HOME:-${HOME}/.agents}"
+AGENTS_HOME="${AGENTS_HOME:-${HOME}/.agents}"
 AGENT_WORKSPACE="${AGENT_WORKSPACE:-/workspace/${PROJECT_ID}}"
 
 CMD_NAME="${CMD_NAME:-claude}"
 
-mkdir -p ${AGENT_HOME} 
+mkdir -p ${AGENTS_HOME} 
 mkdir -p ${CLAUDE_HOME} 
 
 # 解析选项
@@ -65,6 +65,6 @@ docker run -it --rm --network=host \
     -v node_home:/home/node \
     -v "${PROJECT_HOME}:/workspace/${PROJECT_ID}" \
     -v "${CLAUDE_HOME}:/home/node/.claude" \
-    -v "${AGENT_HOME}:/home/node/.agents" \
+    -v "${AGENTS_HOME}:/home/node/.agents" \
     -w "${AGENT_WORKSPACE}" \
   "${IMAGE}" claude --dangerously-skip-permissions --allowedTools "Edit,Write,Bash" ${EXTRA_ARGS}
