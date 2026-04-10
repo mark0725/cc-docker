@@ -5,12 +5,18 @@ IMAGE_REGISTRY="${AGENT_IMAGE_REGISTRY:-ghcr.io/mark0725/agent-go-docker}"
 IMAGE="${IMAGE_REGISTRY}:latest"
 EXTRA_ARGS=""
 
-echo ${IMAGE}
-
-PROJECT_ID=`pwd|sed  's/\//_/g'`
+PROJECT_ID=${PROJECT_ID:-`pwd|sed  's/\//_/g'`}
 AGENT_ID="${AGENT_ID:-default}"
 
-mkdir -p ~/.agents
+PROJECT_HOME="${PROJECT_HOME:-`pwd`}"
+CLAUDE_HOME="${CLAUDE_HOME:-${HOME}/.claude}"
+AGENT_HOME="${AGENT_HOME:-${HOME}/.agents}"
+AGENT_WORKSPACE="${AGENT_WORKSPACE:-/workspace/${PROJECT_ID}}"
+
+CMD_NAME="${CMD_NAME:-claude}"
+
+mkdir -p ${AGENT_HOME} 
+mkdir -p ${CLAUDE_HOME} 
 
 # 解析选项
 while [ $# -gt 0 ]; do
@@ -57,8 +63,8 @@ docker run -it --rm --network=host \
     -e "HOME=/home/node" \
     -e "AGENT_ID=${AGENT_ID}" \
     -v node_home:/home/node \
-    -v "`pwd`:/workspace/${PROJECT_ID}" \
-    -v "${HOME}/.claude:/home/node/.claude" \
-    -v "${HOME}/.agents:/home/node/.agents" \
-    -w "/workspace/${PROJECT_ID}" \
+    -v "${PROJECT_HOME}:/workspace/${PROJECT_ID}" \
+    -v "${CLAUDE_HOME}:/home/node/.claude" \
+    -v "${AGENT_HOME}:/home/node/.agents" \
+    -w "${AGENT_WORKSPACE}" \
   "${IMAGE}" claude --dangerously-skip-permissions --allowedTools "Edit,Write,Bash" ${EXTRA_ARGS}
