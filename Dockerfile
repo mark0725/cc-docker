@@ -1,21 +1,16 @@
-# Dockerfile.full
 FROM node:24-slim
 
-ARG HTTP_PROXY=
 ARG USER_UID=1000
 ARG USER_GID=1000
 ARG TARGETARCH
 
+ARG HTTP_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTP_PROXY}
+ENV PROXY_URL=${HTTP_PROXY}
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SHELL=/bin/bash
-
-# Set http proxy
-RUN if [ -n "$HTTP_PROXY" ]; then \
-        echo "Configuring proxy..."; \
-        export http_proxy=$HTTP_PROXY; \
-        export https_proxy=$HTTP_PROXY; \
-        export proxy_url=$HTTP_PROXY; \
-    fi
 
 # ===== 基础工具 =====
 RUN apt-get update && apt-get install -y \
@@ -49,8 +44,6 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
 # ===== Docker CLI (可选，用于 DinD 场景) =====
 # RUN curl -fsSL https://get.docker.com | sh
 
@@ -65,12 +58,16 @@ RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
     curl -fsSL --http1.1 "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
     chmod +x /usr/local/bin/gosu
 
+USER node
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+USER root
+
 # Unset http proxy
-RUN if [ -n "$HTTP_PROXY" ]; then \
-        unset http_proxy; \
-        unset https_proxy; \
-        unset proxy_url; \
-    fi
+ENV http_proxy=
+ENV https_proxy=
+ENV proxy_url=
 
 COPY entrypoint.sh /entrypoint.sh
 
