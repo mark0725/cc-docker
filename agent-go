@@ -1,0 +1,259 @@
+#!/bin/bash
+
+set -e
+
+IMAGE_REGISTRY="${AGENT_IMAGE_REGISTRY:-ghcr.io/mark0725/agent-go-docker}"
+IMAGE="${IMAGE_REGISTRY}:latest"
+
+PROJECT_ID="${PROJECT_ID:-$(pwd | sed 's#/#_#g')}"
+AGENT_ID="${AGENT_ID:-default}"
+
+PROJECT_HOME="${PROJECT_HOME:-$(pwd)}"
+CLAUDE_HOME="${CLAUDE_HOME:-${HOME}/.claude}"
+AGENTS_HOME="${AGENTS_HOME:-${HOME}/.agents}"
+AGENTS_HUB="${AGENTS_HUB:-${HOME}/.agents-hub}"
+AGENT_WORKSPACE="${AGENT_WORKSPACE:-/workspace/${PROJECT_ID}}"
+LOCAL_BIN="${LOCAL_BIN:-${HOME}/.local/bin}"
+TTY_PORT="${TTY_PORT:-7681}"
+
+SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+
+REMAINING_ARGS=()
+
+usage() {
+    cat <<EOF
+Usage: agent-go <command> [options]
+       (or invoke via symlinks: agent-cc, agent-cc-web, agent-cc-tmux)
+
+Commands:
+  agent-cc         Start claude in interactive CLI mode (default)
+  agent-cc-web     Start claude with ttyd web terminal + tmux (background)
+  agent-cc-tmux    Start claude inside a tmux session
+  add              Create symlinks for agent commands in a directory (default: ~/.local/bin)
+
+Image options:
+  --java8          Use java8 image
+  --java, --java17 Use java17 image
+  --java21         Use java21 image
+  --java25         Use java25 image
+  --go             Use go image
+  --rust           Use rust image
+
+Environment variables:
+  AGENT_IMAGE_REGISTRY  Docker image registry (default: ghcr.io/mark0725/agent-go-docker)
+  AGENT_ID              Agent ID (default: default)
+  PROJECT_HOME          Host project directory (default: \$(pwd))
+  CLAUDE_HOME           Claude config directory (default: ~/.claude)
+  AGENTS_HOME           Agents data directory (default: ~/.agents)
+  AGENTS_HUB            Agents hub directory (default: ~/.agents-hub)
+  AGENT_WORKSPACE       Container workspace path (default: /workspace/\${PROJECT_ID})
+  LOCAL_BIN             Directory for symlinks (default: ~/.local/bin)
+  TTY_PORT              Port for ttyd web server (default: 7681)
+EOF
+    exit 1
+}
+
+parse_global_options() {
+    REMAINING_ARGS=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --java8)
+                IMAGE="${IMAGE_REGISTRY}:java8"
+                shift
+                ;;
+            --java|--java17)
+                IMAGE="${IMAGE_REGISTRY}:java17"
+                shift
+                ;;
+            --java21)
+                IMAGE="${IMAGE_REGISTRY}:java21"
+                shift
+                ;;
+            --java25)
+                IMAGE="${IMAGE_REGISTRY}:java25"
+                shift
+                ;;
+            --go)
+                IMAGE="${IMAGE_REGISTRY}:go"
+                shift
+                ;;
+            --rust)
+                IMAGE="${IMAGE_REGISTRY}:rust"
+                shift
+                ;;
+            -h|--help)
+                usage
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    while [ $# -gt 0 ]; do
+        REMAINING_ARGS+=("$1")
+        shift
+    done
+}
+
+append_common_docker_args() {
+    local -n _args=$1
+
+    _args+=(
+        --user 0
+        -e "HOST_UID=$(id -u)"
+        -e "HOST_GID=$(id -g)"
+        -e "HOME=/home/node"
+        -e "AGENT_ID=${AGENT_ID}"
+    )
+
+    [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ] && _args+=(-e "ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}")
+    [ -n "${ANTHROPIC_BASE_URL:-}" ] && _args+=(-e "ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}")
+    [ -n "${API_TIMEOUT_MS:-}" ] && _args+=(-e "API_TIMEOUT_MS=${API_TIMEOUT_MS}")
+    [ -n "${PROXY_URL:-}" ] && _args+=(-e "PROXY_URL=${PROXY_URL}")
+    [ -n "${HTTP_PROXY:-}" ] && _args+=(-e "HTTP_PROXY=${HTTP_PROXY}")
+    [ -n "${HTTPS_PROXY:-}" ] && _args+=(-e "HTTPS_PROXY=${HTTPS_PROXY}")
+
+    _args+=(
+        -v "node_home:/home/node"
+        -v "${PROJECT_HOME}:/workspace/${PROJECT_ID}"
+        -v "${CLAUDE_HOME}:/home/node/.claude"
+        -v "${AGENTS_HOME}:/home/node/.agents"
+        -v "${AGENTS_HUB}:/home/node/.agents-hub"
+        -w "${AGENT_WORKSPACE}"
+    )
+}
+
+run_docker() {
+    local docker_args=(run -it --rm --network=host)
+    append_common_docker_args docker_args
+    docker "${docker_args[@]}" "$IMAGE" "$@"
+}
+
+run_docker_detached() {
+    local docker_args=(run -d --rm --network=host)
+    append_common_docker_args docker_args
+    docker "${docker_args[@]}" "$IMAGE" "$@"
+}
+
+build_claude_cmd() {
+    local claude_cmd
+    printf -v claude_cmd '%q ' claude --dangerously-skip-permissions --allowedTools "Edit,Write,Bash" "$@"
+    claude_cmd="${claude_cmd% }"
+    printf '%s' "$claude_cmd"
+}
+
+cmd_agent_cc() {
+    run_docker claude --dangerously-skip-permissions --allowedTools "Edit,Write,Bash" "$@"
+}
+
+cmd_agent_cc_tmux() {
+    local claude_cmd
+    local inner_cmd
+    claude_cmd="$(build_claude_cmd "$@")"
+    inner_cmd="if tmux has-session -t claude 2>/dev/null; then exec tmux attach-session -t claude; else exec tmux new-session -s claude \"${claude_cmd}\"; fi"
+    run_docker bash -lc "$inner_cmd"
+}
+
+cmd_agent_cc_web() {
+    local claude_cmd
+    local inner_cmd
+    local container_id
+
+    claude_cmd="$(build_claude_cmd "$@")"
+    inner_cmd="if ! tmux has-session -t claude 2>/dev/null; then tmux new-session -d -s claude \"${claude_cmd}\"; fi && exec /usr/local/bin/ttyd -p ${TTY_PORT} -W tmux attach-session -t claude"
+
+    container_id="$(run_docker_detached bash -lc "$inner_cmd")"
+    echo "${container_id}"
+    echo "agent-cc-web started: http://localhost:${TTY_PORT}"
+}
+
+cmd_add() {
+    local target_dir="${1:-${LOCAL_BIN}}"
+    local applet
+    local link_path
+
+    mkdir -p "${target_dir}"
+
+    echo "Creating symlinks in: ${target_dir}"
+    echo "Source: ${SCRIPT_PATH}"
+    echo
+
+    for applet in agent-cc agent-cc-web agent-cc-tmux; do
+        link_path="${target_dir}/${applet}"
+        if [ -L "${link_path}" ]; then
+            rm "${link_path}"
+            echo "  Updated: ${link_path}"
+        elif [ -e "${link_path}" ]; then
+            echo "  Skip (exists, not symlink): ${link_path}"
+            continue
+        else
+            echo "  Created: ${link_path}"
+        fi
+        ln -s "${SCRIPT_PATH}" "${link_path}"
+    done
+
+    echo
+    echo "Done! Add to PATH:"
+    echo "  export PATH=\"${target_dir}:\$PATH\""
+}
+
+run_named_command() {
+    local subcmd="$1"
+    shift || true
+
+    case "$subcmd" in
+        agent-cc)
+            parse_global_options "$@"
+            cmd_agent_cc "${REMAINING_ARGS[@]}"
+            ;;
+        agent-cc-web)
+            parse_global_options "$@"
+            cmd_agent_cc_web "${REMAINING_ARGS[@]}"
+            ;;
+        agent-cc-tmux)
+            parse_global_options "$@"
+            cmd_agent_cc_tmux "${REMAINING_ARGS[@]}"
+            ;;
+        add)
+            cmd_add "$@"
+            ;;
+        -h|--help|help)
+            usage
+            ;;
+        *)
+            echo "Unknown command: ${subcmd}"
+            echo "Available: agent-cc, agent-cc-web, agent-cc-tmux, add"
+            exit 1
+            ;;
+    esac
+}
+
+if [ "$SCRIPT_NAME" = "agent-go" ]; then
+    run_named_command "${1:-agent-cc}" "${@:2}"
+    exit
+fi
+
+case "$SCRIPT_NAME" in
+    agent-cc|agent-cc-web|agent-cc-tmux)
+        run_named_command "$SCRIPT_NAME" "$@"
+        ;;
+    add)
+        cmd_add "$@"
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        echo "Unknown command: $SCRIPT_NAME"
+        echo "Did you mean to create a symlink? ./agent-go add"
+        echo
+        usage
+        ;;
+esac

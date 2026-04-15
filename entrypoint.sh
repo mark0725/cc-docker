@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# 确保 /usr/local/bin 在 PATH 中
+export PATH="/usr/local/bin:$PATH"
+
 if [ -f "${HOME}/.agents-hub/agents/.env" ]; then
     set -a
     source "${HOME}/.agents-hub/agents/.env"

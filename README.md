@@ -1,107 +1,101 @@
 # agent-go-docker
 
-Claude Code 的 Docker 镜像，支持多架构（amd64/arm64），开箱即用的开发环境。
+用于启动 Claude Code 容器环境的 Docker 镜像与本地启动脚本。
 
-## 镜像变体
+## 构建说明
 
-| 变体 | 基础镜像 | 内置语言环境 |
-|------|----------|--------------|
-| `latest` | `node:24-slim` | Node.js 24 + Python 3 |
-| `java8` | `node:24-slim` | Node.js 24 + Python 3 + Java 8 (Eclipse Temurin) + Maven 3.9.14 |
-| `java17` | `node:24-slim` | Node.js 24 + Python 3 + Java 17 (Eclipse Temurin) + Maven 3.9.14 |
-| `go` | `node:24-slim` | Node.js 24 + Python 3 + Go 1.26.1 |
-| `rust` | `node:24-slim` | Node.js 24 + Python 3 + Rust (via rustup) |
-
-所有镜像内置开发工具链：
-
-```
-git · curl · wget · vim · neovim · ripgrep · fd-find · jq · tree · htop
-build-essential · openssh-client · ca-certificates · sudo
-Python 3 + pip + venv
-```
-
-## 快速开始
-
-### 1. 安装 `agent-cc` 脚本
+### 本地构建基础镜像
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mark0725/agent-go-docker/main/agent-cc -o ~/.local/bin/agent-cc
-chmod +x ~/.local/bin/agent-cc
+docker build -t agent-go-docker:latest -f Dockerfile .
 ```
 
-### 2. 设置环境变量
+### 构建语言变体镜像
 
 ```bash
-export AGENT_ID="default"
+docker build -t agent-go-docker:java8  -f Dockerfile.java8 .
+docker build -t agent-go-docker:java17 -f Dockerfile.java17 .
+docker build -t agent-go-docker:java21 -f Dockerfile.java21 .
+docker build -t agent-go-docker:java25 -f Dockerfile.java25 .
+docker build -t agent-go-docker:go     -f Dockerfile.go .
+docker build -t agent-go-docker:rust   -f Dockerfile.rust .
 ```
 
-### 3. 启动 Claude Code
+## 使用说明
+
+### 1. 安装启动脚本
+
+给脚本增加可执行权限，并安装命令链接：
 
 ```bash
-# 默认 latest 镜像
+chmod +x agent-go
+./agent-go add
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+安装后可使用以下命令：
+
+- `agent-cc`：启动 Claude Code 交互式 CLI
+- `agent-cc-web`：启动 ttyd Web 终端 + tmux
+- `agent-cc-tmux`：在 tmux 中启动 Claude Code
+
+### 2. 基本启动
+
+```bash
 agent-cc
-
-# 使用 Java 8 环境
-agent-cc --java8
-
-# 使用 Java 17 环境
-agent-cc --java
-
-# 传递额外参数
-agent-cc -p '帮我写一个 Hello World'
 ```
 
-## 持久化配置
+### 3. 选择镜像变体
 
-`cc` 脚本自动配置以下卷挂载：
+```bash
+agent-cc --java8
+agent-cc --java
+agent-cc --java21
+agent-cc --java25
+agent-cc --go
+agent-cc --rust
+```
 
-| 宿主机路径 | 容器内路径 | 用途 |
-|-----------|-----------|------|
-| `node_home` (Docker 卷) | `/home/node` | 用户 home 目录（含 Maven 缓存） |
-| `~/.claude` | `/home/node/.claude` | Claude Code 配置与会话状态 |
-| `~/.agents` | `/home/node/.agents` | Agent 环境变量配置 |
+其中 `--java` 等同于 `--java17`。
 
-## 手动运行
+### 4. 传递 Claude 参数
+
+```bash
+agent-cc -p '帮我检查当前目录代码'
+```
+
+### 5. Web / tmux 模式
+
+```bash
+agent-cc-web
+agent-cc-tmux
+```
+
+### 6. 常用环境变量
+
+```bash
+export AGENT_ID=default
+export AGENT_IMAGE_REGISTRY=ghcr.io/mark0725/agent-go-docker
+export CLAUDE_HOME=$HOME/.claude
+export AGENTS_HOME=$HOME/.agents
+export AGENTS_HUB=$HOME/.agents-hub
+```
+
+### 7. 直接使用 Docker 运行
 
 ```bash
 docker run -it --rm --network=host \
   --user 0 \
   -e "HOST_UID=$(id -u)" \
   -e "HOST_GID=$(id -g)" \
-  -e "AGENT_ID=default" \
   -e "HOME=/home/node" \
+  -e "AGENT_ID=default" \
   -v node_home:/home/node \
-  -v "${HOME}/.claude:/home/node/.claude" \
-  -v "${HOME}/.agents:/home/node/.agents" \
-  -v "$(pwd):/workspace/$(pwd|sed 's/\//_/g')" \
-  ghcr.io/mark0725/agent-go-docker:latest
+  -v "$PWD:/workspace/$(pwd | sed 's#/#_#g')" \
+  -v "$HOME/.claude:/home/node/.claude" \
+  -v "$HOME/.agents:/home/node/.agents" \
+  -v "$HOME/.agents-hub:/home/node/.agents-hub" \
+  -w "/workspace/$(pwd | sed 's#/#_#g')" \
+  ghcr.io/mark0725/agent-go-docker:latest \
+  claude
 ```
-
-## 目录权限映射
-
-容器默认以 `node` 用户（UID 1000）运行。通过 `HOST_UID`/`HOST_GID` 环境变量，entrypoint 自动将容器内 UID/GID 调整为与宿主机一致，确保容器内创建的文件在宿主机上拥有正确的属主。
-
-
-## CI/CD
-
-GitHub Actions 自动构建并推送镜像到 GHCR：
-
-| 触发条件 | 推送 tags |
-|---------|----------|
-| 推送至 `main` 分支 | `latest` · `java8` · `java17` · `go` · `rust` · `base` |
-| 打 `v1.0.0` tag | `1.0.0-latest` · `1.0.0-java8` · `1.0.0-java17` · `1.0.0-go` · `1.0.0-rust` |
-| PR | 仅构建验证，不推送 |
-
-## 镜像地址
-
-```
-ghcr.io/mark0725/agent-go-docker:latest
-ghcr.io/mark0725/agent-go-docker:java8
-ghcr.io/mark0725/agent-go-docker:java17
-ghcr.io/mark0725/agent-go-docker:go
-ghcr.io/mark0725/agent-go-docker:rust
-```
-
-## License
-
-MIT

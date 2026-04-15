@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
+    tmux \
     vim \
     neovim \
     ripgrep \
@@ -30,6 +31,21 @@ RUN apt-get update && apt-get install -y \
     sudo \
     locales \
     && rm -rf /var/lib/apt/lists/*
+
+
+ARG TTYD_VERSION="1.7.7"
+
+RUN ARCH=$(uname -m) && \
+    case ${ARCH} in \
+        x86_64)  TTYD_ARCH="x86_64" ;; \
+        aarch64) TTYD_ARCH="aarch64"  ;; \
+        *)       echo "Unsupported architecture: ${ARCH}"; exit 1 ;; \
+    esac && \
+    TTYD_URL="https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${TTYD_ARCH}" && \
+    wget -O /usr/local/bin/ttyd ${TTYD_URL} && \
+    chmod +x /usr/local/bin/ttyd
+
+ENV PATH="/usr/local/bin:${PATH}"
 
 # 设置 locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -65,9 +81,9 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 USER root
 
 # Unset http proxy
-ENV http_proxy=
-ENV https_proxy=
-ENV proxy_url=
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
+ENV PROXY_URL=
 
 COPY entrypoint.sh /entrypoint.sh
 
@@ -75,6 +91,8 @@ COPY entrypoint.sh /entrypoint.sh
 WORKDIR /home/node
 RUN git config --global init.defaultBranch main \
     && chown -R node:node /home/node
+
+EXPOSE 7681
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["claude"]
