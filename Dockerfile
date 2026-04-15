@@ -86,6 +86,7 @@ ENV HTTPS_PROXY=
 ENV PROXY_URL=
 
 COPY entrypoint.sh /entrypoint.sh
+COPY .tmux.conf /home/node/.tmux.conf
 
 # 以 root 创建 node 用户的配置文件，运行时 entrypoint 会修正属主
 WORKDIR /home/node
