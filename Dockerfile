@@ -74,11 +74,7 @@ RUN ARCH=${TARGETARCH:-$(dpkg --print-architecture)} && \
     curl -fsSL --http1.1 "https://github.com/tianon/gosu/releases/download/1.17/gosu-${ARCH}" -o /usr/local/bin/gosu && \
     chmod +x /usr/local/bin/gosu
 
-USER node
-
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-USER root
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 # Unset http proxy
 ENV HTTP_PROXY=
