@@ -16,20 +16,7 @@ if [ -n "${AGENT_ID:-}" ] && [ -f "${HOME}/.agents-hub/agents/${AGENT_ID}/.env" 
     set +a
 fi
 
-# 以 root 运行且设置了 HOST_UID 时，将容器内 node 用户的 UID/GID 调整为与宿主机一致
-# 这样容器内创建的文件在宿主机上拥有正确的属主
-if [ "$(id -u)" = "0" ] && [ -n "${HOST_UID:-}" ]; then
-    if [ "$(id -u node)" != "${HOST_UID}" ]; then
-        OLD_UID=$(id -u node)
-        groupmod -g "${HOST_GID}" node 2>/dev/null || true
-        usermod -u "${HOST_UID}" -g "${HOST_GID}" node
-        # 修正构建阶段以旧 UID 创建的文件（.gitconfig 等）
-        find /home/node -user "${OLD_UID}" -exec chown -h node:node {} + 2>/dev/null || true
-    fi
-    exec gosu node "$@"
-fi
-
-# 如果设置了 AGENT_ID，则在 /workspace 目录下创建 CLAUDE.md 文件
+# 如果设置了 AGENT_ID，则在 /workspace 目录下创建 CLAUDE.md,AGENTS.md 文件
 if [ -n "${AGENT_ID:-}" ]; then
     AGENT_DIR="${HOME}/.agents-hub/agents/${AGENT_ID}"
     CLAUDE_MD="/workspace/CLAUDE.md"
@@ -63,8 +50,21 @@ if [ -n "${AGENT_ID:-}" ]; then
     } > "${AGENTS_MD}"
 
     if [ -f "${AGENTS_MD}" ]; then
-       cat "${AGENTS_MD}" > "${CLAUDE_MD}"
+       echo "@AGENTS.md" > "${CLAUDE_MD}"
     fi
+fi
+
+# 以 root 运行且设置了 HOST_UID 时，将容器内 node 用户的 UID/GID 调整为与宿主机一致
+# 这样容器内创建的文件在宿主机上拥有正确的属主
+if [ "$(id -u)" = "0" ] && [ -n "${HOST_UID:-}" ]; then
+    if [ "$(id -u node)" != "${HOST_UID}" ]; then
+        OLD_UID=$(id -u node)
+        groupmod -g "${HOST_GID}" node 2>/dev/null || true
+        usermod -u "${HOST_UID}" -g "${HOST_GID}" node
+        # 修正构建阶段以旧 UID 创建的文件（.gitconfig 等）
+        find /home/node -user "${OLD_UID}" -exec chown -h node:node {} + 2>/dev/null || true
+    fi
+    exec gosu node "$@"
 fi
 
 exec "$@"
