@@ -29,6 +29,7 @@ RUN  apt-get update && apt-get install -y \
     openssh-client \
     ca-certificates \
     sudo \
+    tzdata \
     locales \
     && rm -rf /var/lib/apt/lists/*
 

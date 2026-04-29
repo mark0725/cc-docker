@@ -109,6 +109,7 @@ append_common_docker_args() {
         --user 0
         -e "HOST_UID=$(id -u)"
         -e "HOST_GID=$(id -g)"
+        -e "TZ=${TZ:-:/etc/localtime}"
         -e "HOME=/home/node"
         -e "AGENT_ID=${AGENT_ID}"
     )
@@ -122,6 +123,7 @@ append_common_docker_args() {
 
     _args+=(
         -v "node_home:/home/node"
+        -v "/etc/localtime:/etc/localtime:ro"
         -v "${PROJECT_HOME}:/workspace/${PROJECT_ID}"
         -v "${CLAUDE_HOME}:/home/node/.claude"
         -v "${AGENTS_HOME}:/home/node/.agents"
