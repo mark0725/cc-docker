@@ -3,6 +3,8 @@ FROM node:24-slim
 ARG USER_UID=1000
 ARG USER_GID=1000
 ARG TARGETARCH
+ARG DOCKER_VERSION=27.1.0
+ARG TTYD_VERSION="1.7.7"
 
 ARG HTTP_PROXY
 ENV HTTP_PROXY=${HTTP_PROXY}
@@ -12,9 +14,7 @@ ENV PROXY_URL=${HTTP_PROXY}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SHELL=/bin/bash
 
-# ===== 基础工具 =====
-RUN apt-get update && apt-get install -y \
-    git \
+RUN  apt-get update && apt-get install -y \
     curl \
     wget \
     tmux \
@@ -32,8 +32,18 @@ RUN apt-get update && apt-get install -y \
     locales \
     && rm -rf /var/lib/apt/lists/*
 
-
-ARG TTYD_VERSION="1.7.7"
+RUN . /etc/os-release \
+    && if [ "${VERSION_CODENAME}" = "bookworm" ]; then \
+         echo "deb http://deb.debian.org/debian testing main" > /etc/apt/sources.list.d/testing.list \
+         && printf 'Package: *\nPin: release a=testing\nPin-Priority: 100\n' > /etc/apt/preferences.d/testing; \
+       fi \
+    && apt-get update \
+    && if [ "${VERSION_CODENAME}" = "bookworm" ]; then \
+         apt-get install -y -t testing git; \
+       else \
+         apt-get install -y git; \
+       fi \
+    && rm -f /etc/apt/sources.list.d/testing.list /etc/apt/preferences.d/testing
 
 RUN ARCH=$(uname -m) && \
     case ${ARCH} in \
@@ -61,7 +71,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # ===== Docker CLI (可选，用于 DinD 场景) =====
-# RUN curl -fsSL https://get.docker.com | sh
+RUN curl -fsSL --http1.1 "https://download.docker.com/linux/static/stable/$(uname -m)/docker-${DOCKER_VERSION}.tgz" \
+    | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+    && chmod +x /usr/local/bin/docker
+
+RUN groupadd --gid 999 docker && usermod -aG docker node
 
 # ===== 安装 Claude Code =====
 RUN npm install -g @anthropic-ai/claude-code
