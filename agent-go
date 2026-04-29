@@ -19,6 +19,7 @@ TTY_PORT="${TTY_PORT:-7681}"
 SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || echo "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 SCRIPT_NAME="$(basename "$0")"
+DOCKER_SOCK="${DOCKER_SOCK:-/var/run/docker.sock}"
 
 REMAINING_ARGS=()
 
@@ -124,6 +125,7 @@ append_common_docker_args() {
     _args+=(
         -v "node_home:/home/node"
         -v "/etc/localtime:/etc/localtime:ro"
+        -v "${DOCKER_SOCK}:/var/run/docker.sock"
         -v "${PROJECT_HOME}:/workspace/${PROJECT_ID}"
         -v "${CLAUDE_HOME}:/home/node/.claude"
         -v "${AGENTS_HOME}:/home/node/.agents"
